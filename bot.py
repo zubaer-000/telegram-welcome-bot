@@ -28,22 +28,24 @@ def get_private_welcome_text(name):
 
 # =============== TELEGRAM BOT LOGIC ===============
 
-# This function handles the /start command (When someone clicks the button or starts the bot)
+# 1. Handle /start command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.effective_user:
-        return
-    
     user = update.effective_user
     name = user.first_name or "সদস্য"
-    
-    print(f"📩 Handling /start from {name} ({user.id})")
-    
-    await update.message.reply_text(
-        text=get_private_welcome_text(name),
-        parse_mode="Markdown"
-    )
+    await update.message.reply_text(get_private_welcome_text(name), parse_mode="Markdown")
 
-# This function handles when people join the group
+# 2. NEW: Handle ANY text message sent to the bot privately
+async def handle_private_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Only reply if it's a private chat (not a group chat)
+    if update.message.chat.type == "private":
+        user = update.effective_user
+        name = user.first_name or "সদস্য"
+        await update.message.reply_text(
+            f"তুমি লিখেছো: '{update.message.text}'\n\n" + get_private_welcome_text(name),
+            parse_mode="Markdown"
+        )
+
+# 3. Handle Group Joins
 async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.new_chat_members:
         return
@@ -55,52 +57,39 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = user.first_name or "সদস্য"
         bot_username = context.bot.username
         
-        keyboard = [
-            [InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{bot_username}")]
-        ]
+        keyboard = [[InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{bot_username}")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         group_msg = (
             f"👋 আমাদের পরিবারে সদস্য হিসেবে স্বাগতম তোমাকে, <b>{name}</b>! 🎉\n\n"
-            "গ্রুপের উপরে পিন করা মেসেজগুলো একটু চেক করে দেখো। আশা করি টিএসএস সম্পর্কে জানতে পারবে।\n\n"
+            "গ্রুপের উপরে পিন করা মেসেজগুলো একটু চেক করে দেখো।\n\n"
             "সব কিছু একসাথে জানতে নিচের বাটনে ক্লিক করে আমাকে মেসেজ দাও: 👇"
         )
         
         try:
-            await update.message.reply_text(
-                group_msg, 
-                parse_mode="HTML", 
-                reply_markup=reply_markup
-            )
+            await update.message.reply_text(group_msg, parse_mode="HTML", reply_markup=reply_markup)
         except Exception as e:
-            print(f"❌ Error in group message: {e}")
-
-        # Try to send automatic DM (Only works if they started the bot before)
-        try:
-            await context.bot.send_message(
-                chat_id=user.id,
-                text=get_private_welcome_text(name),
-                parse_mode="Markdown"
-            )
-        except Exception:
-            # We don't print error here because it's expected if they haven't started the bot
-            pass
+            print(f"Error: {e}")
 
 if __name__ == "__main__":
     TOKEN = os.environ.get("BOT_TOKEN")
     if not TOKEN:
-        print("❌ BOT_TOKEN is missing from environment variables!")
         exit(1)
 
-    # Start Flask
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # Build Bot
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Handlers (MAKE SURE THESE ARE IN THIS ORDER)
+    # --- HANDLERS ---
+    # 1. Handle the /start command
     app.add_handler(CommandHandler("start", start_command))
+    
+    # 2. Handle group join status updates
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_group))
+    
+    # 3. Handle all other private text messages (This is what was missing!)
+    # filters.TEXT & ~filters.COMMAND means "Any text that is NOT a command like /start"
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE, handle_private_message))
 
-    print("🤖 Bot is active. Ready for /start and Group Joins.")
+    print("🤖 Bot is active and will now reply to ALL private messages!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
