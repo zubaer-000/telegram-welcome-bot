@@ -1,5 +1,6 @@
 import os
 import threading
+import asyncio
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
@@ -12,7 +13,6 @@ def health():
     return "Bot is alive and running!", 200
 
 def run_flask():
-    # Render provides a dynamic PORT. We must use it to pass the health check.
     port = int(os.environ.get("PORT", 10000))
     flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
@@ -20,21 +20,24 @@ def run_flask():
 
 async def delete_message_job(context: ContextTypes.DEFAULT_TYPE):
     """Callback function to delete the message after the timer expires"""
-    job = context.job
+    job_data = context.job.data
     try:
-        await context.bot.delete_message(chat_id=job.chat_id, message_id=job.data)
-        print(f"🗑️ Auto-deleted message {job.data} in chat {job.chat_id}")
+        await context.bot.delete_message(
+            chat_id=job_data["chat_id"],
+            message_id=job_data["message_id"]
+        )
+        print(f"🗑️ Auto-deleted message {job_data['message_id']} in chat {job_data['chat_id']}")
     except Exception as e:
         print(f"⚠️ Could not delete message: {e}")
 
-# =============== TEXT CONTENT (HTML VERSION) ===============
+# =============== TEXT CONTENT ===============
 
 def get_welcome_info(name):
     return (
-        f"হ্যালো <b>{name}</b>! স্বাগতম আমাদের পরিবারে। ❤️\n\n"
-        "তুমি <b>তার্কিকে</b> যুক্ত হতে চাও? তাহলে নিচের লিংকে গিয়ে লেভেল ১ এবং ২ এর প্লেলিস্ট দেখে শিখে ফেলো সব এবং ছোট পরীক্ষা দিয়ে দাও।\n"
+        f"হ্যালো {name}! স্বাগতম আমাদের পরিবারে। ❤️\n\n"
+        "তুমি **তার্কিকে** যুক্ত হতে চাও? তাহলে নিচের লিংকে গিয়ে লেভেল ১ এবং ২ এর প্লেলিস্ট দেখে শিখে ফেলো সব এবং ছোট পরীক্ষা দিয়ে দাও।\n"
         "🔗 তার্কিকের লিঙ্ক: https://tss-tarkik.blogspot.com/\n\n"
-        "তুমি <b>বায়োব্রিজে</b> যুক্ত হতে চাও? তাহলে তো সেরা!\n"
+        "তুমি **বায়োব্রিজে** যুক্ত হতে চাও? তাহলে তো সেরা!\n"
         "🔗 লিঙ্ক: https://tss-bio-bridge.blogspot.com/\n\n"
         "কোনো প্রশ্ন বা সাহায্য লাগলে গ্রুপে জানিও!"
     )
@@ -42,14 +45,13 @@ def get_welcome_info(name):
 # =============== BOT HANDLERS ===============
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles /start and any private messages using HTML"""
     user = update.effective_user
     name = user.first_name or "সদস্য"
-    await update.message.reply_text(get_welcome_info(name), parse_mode="HTML")
+    await update.message.reply_text(get_welcome_info(name), parse_mode="Markdown")
 
 async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles new members joining the group"""
-    if not update.message or not update.message.new_chat_members:
+    if not update.message.new_chat_members:
         return
 
     for user in update.message.new_chat_members:
@@ -58,7 +60,6 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         name = user.first_name or "সদস্য"
 
-        # 1. Send the Welcome Message first (HTML)
         btn = InlineKeyboardMarkup([[
             InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{context.bot.username}")
         ]])
@@ -76,20 +77,22 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=btn
             )
             
-            # 2. Try to delete the 'User joined' system notification
             try:
                 await update.message.delete()
-            except:
+            except Exception:
                 pass
 
-            # 3. Schedule Auto-Delete (30 seconds for testing)
-            delete_delay = 30 
+            # ✅ FIX: Pass chat_id and message_id together inside data dict
+            delete_delay = 30
             context.job_queue.run_once(
-                delete_message_job, 
-                when=delete_delay, 
-                chat_id=update.effective_chat.id, 
-                data=sent_msg.message_id
+                delete_message_job,
+                when=delete_delay,
+                data={
+                    "chat_id": update.effective_chat.id,
+                    "message_id": sent_msg.message_id
+                }
             )
+            print(f"🕒 Scheduled deletion for message {sent_msg.message_id} in {delete_delay}s")
 
         except Exception as e:
             print(f"❌ Error in group greeting: {e}")
@@ -102,17 +105,15 @@ if __name__ == "__main__":
         print("❌ CRITICAL: BOT_TOKEN not found!")
         exit(1)
 
-    # 1. Start Flask in background thread BEFORE the bot starts
+    print("🌐 Starting Flask Server...")
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # 2. Build the Application with JobQueue enabled
+    print("🤖 Initializing Bot...")
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # 3. Add Handlers
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, start_handler))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_group))
 
-    # 4. Start Polling
-    print("🚀 BOT IS LIVE.")
+    print("🚀 BOT IS LIVE. Waiting for events...")
     app.run_polling(drop_pending_updates=True)
