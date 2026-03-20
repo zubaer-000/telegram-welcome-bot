@@ -14,8 +14,18 @@ def health():
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
-    # use_reloader=False is critical in threaded environments
     flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
+# =============== AUTO-DELETE LOGIC ===============
+
+async def delete_message_job(context: ContextTypes.DEFAULT_TYPE):
+    """This function runs after the timer expires"""
+    job = context.job
+    try:
+        await context.bot.delete_message(chat_id=job.chat_id, message_id=job.data)
+        print(f"🗑️ Auto-deleted message {job.data} in chat {job.chat_id}")
+    except Exception as e:
+        print(f"⚠️ Could not delete message: {e}")
 
 # =============== TEXT LOGIC ===============
 def get_welcome_text(name):
@@ -30,47 +40,51 @@ def get_welcome_text(name):
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    print(f"DEBUG: Received /start from {user.first_name}")
     await update.message.reply_text(get_welcome_text(user.first_name), parse_mode="Markdown")
 
 async def group_join_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.new_chat_members:
         return
+    
     for user in update.message.new_chat_members:
         if user.id == context.bot.id: continue
         
         name = user.first_name or "সদস্য"
         btn = InlineKeyboardMarkup([[InlineKeyboardButton("বিস্তারিত জানুন ✨", url=f"https://t.me/{context.bot.username}")]])
         
-        await update.message.reply_text(
+        # Send the message
+        sent_message = await update.message.reply_text(
             f"স্বাগতম <b>{name}</b>! আমাদের পরিবারে যুক্ত হওয়ার জন্য ধন্যবাদ। সব জানতে নিচের বাটনে ক্লিক করো: 👇",
             reply_markup=btn,
             parse_mode="HTML"
         )
 
+        # SCHEDULE DELETE: 6 hours = 6 * 60 * 60 seconds
+        delete_time = 6 * 60 * 60 
+        
+        context.job_queue.run_once(
+            delete_message_job, 
+            when=delete_time, 
+            chat_id=update.effective_chat.id, 
+            data=sent_message.message_id
+        )
+        print(f"🕒 Scheduled deletion for message {sent_message.message_id} in {delete_time} seconds.")
+
 # =============== MAIN STARTUP ===============
 
 if __name__ == "__main__":
     TOKEN = os.environ.get("BOT_TOKEN")
-    
     if not TOKEN:
-        print("❌ ERROR: BOT_TOKEN variable is missing!")
         exit(1)
 
-    # 1. Start Flask in background
-    print("🌐 Starting Flask...")
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # 2. Setup Bot
-    print("🤖 Initializing Bot...")
+    # Build Bot with Job Queue enabled
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # 3. Add Handlers
     app.add_handler(CommandHandler("start", start_handler))
-    # Catch-all text handler for private chats
     app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, start_handler))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, group_join_handler))
 
-    # 4. Run Polling (Blocking call)
-    print("✅ BOT IS LIVE. Waiting for messages...")
+    print("✅ BOT IS LIVE with 6-hour Auto-Delete enabled!")
     app.run_polling(drop_pending_updates=True)
