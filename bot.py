@@ -45,7 +45,7 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Fixing the link issue by using a proper Markdown URL
         group_msg = (
-            f"👋 আমাদের পরিবারে সদস্য হিসেবে স্বাগতম তোমাকে, **{name}**! 🎉\n\n"
+            f" আমাদের পরিবারে সদস্য হিসেবে স্বাগতম তোমাকে, **{name}**! 🎉\n\n"
             "গ্রুপের উপরে পিন করা মেসেজগুলো একটু চেক করে দেখো। আশা করি টিএসএস সম্পর্কে জানতে পারবে।\n\n"
             f"সব একসাথে জানতে সরাসরি আমাকে এখানে মেসেজ দাও: [@{bot_username}](https://t.me/{bot_username})"
         )
