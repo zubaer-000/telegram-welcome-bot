@@ -19,15 +19,31 @@ def run_flask():
 def get_private_welcome_text(name):
     return (
         f"হ্যালো {name}! স্বাগতম আমাদের পরিবারে। ❤️\n\n"
-        "তুমি **তার্কিকে** যুক্ত হতে চাও? তাহলে নিচের লিংকে গিয়ে লেভেল ১ এবং ২ এর প্লেলিস্ট দেখে শিখে ফেলো সব এবং ছোট পরীক্ষা দিয়ে দাও।\n"
+        "তুমি **তার্কিকে** যুক্ত হতে চাও? তাহলে নিচের লিংকে গিয়ে লেভেল ১ এবং ২ এর প্লেলিস্ট দেখে শিখে ফেলো সব এবং ছোট পরীক্ষা দিয়ে দাও।\n\n"
         "🔗 তার্কিকের লিঙ্ক: https://tss-tarkik.blogspot.com/\n\n"
-        "তুমি **বায়োব্রিজে** যুক্ত হতে চাও? তাহলে তো সেরা!\n"
+        "তুমি **বায়োব্রিজে** যুক্ত হতে চাও? তাহলে তো সেরা!\n\n"
         "🔗 লিঙ্ক: https://tss-bio-bridge.blogspot.com/\n\n"
         "কোনো প্রশ্ন বা সাহায্য লাগলে গ্রুপে জানিও!"
     )
 
 # =============== TELEGRAM BOT LOGIC ===============
 
+# This function handles the /start command (When someone clicks the button or starts the bot)
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_user:
+        return
+    
+    user = update.effective_user
+    name = user.first_name or "সদস্য"
+    
+    print(f"📩 Handling /start from {name} ({user.id})")
+    
+    await update.message.reply_text(
+        text=get_private_welcome_text(name),
+        parse_mode="Markdown"
+    )
+
+# This function handles when people join the group
 async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.new_chat_members:
         return
@@ -39,13 +55,11 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = user.first_name or "সদস্য"
         bot_username = context.bot.username
         
-        # 1. Create the Button
         keyboard = [
             [InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{bot_username}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # 2. Simplified Group Message
         group_msg = (
             f"👋 আমাদের পরিবারে সদস্য হিসেবে স্বাগতম তোমাকে, <b>{name}</b>! 🎉\n\n"
             "গ্রুপের উপরে পিন করা মেসেজগুলো একটু চেক করে দেখো। আশা করি টিএসএস সম্পর্কে জানতে পারবে।\n\n"
@@ -56,12 +70,12 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 group_msg, 
                 parse_mode="HTML", 
-                reply_markup=reply_markup # This adds the button!
+                reply_markup=reply_markup
             )
         except Exception as e:
-            print(f"Error in group message: {e}")
+            print(f"❌ Error in group message: {e}")
 
-        # 3. Try to send Private Message
+        # Try to send automatic DM (Only works if they started the bot before)
         try:
             await context.bot.send_message(
                 chat_id=user.id,
@@ -69,23 +83,24 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
         except Exception:
+            # We don't print error here because it's expected if they haven't started the bot
             pass
-
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    name = user.first_name or "সদস্য"
-    await update.message.reply_text(get_private_welcome_text(name), parse_mode="Markdown")
 
 if __name__ == "__main__":
     TOKEN = os.environ.get("BOT_TOKEN")
     if not TOKEN:
+        print("❌ BOT_TOKEN is missing from environment variables!")
         exit(1)
 
+    # Start Flask
     threading.Thread(target=run_flask, daemon=True).start()
 
+    # Build Bot
     app = ApplicationBuilder().token(TOKEN).build()
+
+    # Handlers (MAKE SURE THESE ARE IN THIS ORDER)
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_group))
 
-    print("🤖 Bot is active with Button Support!")
+    print("🤖 Bot is active. Ready for /start and Group Joins.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
