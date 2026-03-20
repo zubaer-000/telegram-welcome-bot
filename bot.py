@@ -1,279 +1,287 @@
 import os
-import threading
 import asyncio
-import logging
-
+import threading
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder,
-    MessageHandler,
-    CommandHandler,
-    CallbackQueryHandler,
-    filters,
-    ContextTypes,
+    ApplicationBuilder, MessageHandler, CommandHandler,
+    CallbackQueryHandler, filters, ContextTypes
 )
-
-# =============== LOGGING ===============
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
-logger = logging.getLogger(__name__)
 
 # =============== FLASK HEALTH CHECK ===============
 flask_app = Flask(__name__)
 
-@flask_app.route("/")
+@flask_app.route('/')
 def health():
-    return "TSS Bot is alive and running!", 200
+    return "Bot is alive and running!", 200
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"Flask starting on port {port}")
-    flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
-# =============== CONSTANTS & LINKS ===============
-LINKS = {
-    "central_hub": "https://tss-central-hub.blogspot.com/",
-    "tarkik":      "https://tss-tarkik.blogspot.com/",
-    "bio_bridge":  "https://tss-bio-bridge.blogspot.com/",
-}
+# =============== CLUB DATA ===============
+CLUBS = [
+    {
+        "id": "tarkik",
+        "emoji": "⚔️",
+        "name": "TSS :: Tarkik",
+        "tag": "Debate",
+        "short": "Master the art of argument.",
+        "detail": (
+            "⚔️ *TSS :: Tarkik — Debate*\n\n"
+            "Master the art of argument. Tarkik trains debaters from fundamentals to national-level parliamentary and traditional debate.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• Parliamentary Debate (WSDC, NHSDC format)\n"
+            "• Traditional Bengali Debate\n"
+            "• Rebuttal, POI, and case-building skills\n\n"
+            "🔗 *শুরু করতে এখানে যাও:* https://tss-tarkik.blogspot.com/\n\n"
+            "যোগ দিতে চাইলে লেভেল ১ ও ২ এর প্লেলিস্ট দেখে ছোট পরীক্ষা দিয়ে দাও!"
+        ),
+    },
+    {
+        "id": "numero",
+        "emoji": "🔢",
+        "name": "TSS :: Numero Odyssey",
+        "tag": "Math Olympiad",
+        "short": "A journey through numbers.",
+        "detail": (
+            "🔢 *TSS :: Numero Odyssey — Math Olympiad*\n\n"
+            "A journey through numbers. Prepare for district, regional and national mathematics olympiads.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• Number Theory, Combinatorics, Geometry\n"
+            "• BdMO জেলা → জাতীয় প্রস্তুতি\n"
+            "• Problem-solving strategy & proof writing\n\n"
+            "আগ্রহী হলে গ্রুপে জানাও — আমরা তোমাকে সঠিক পথ দেখাবো! 🧮"
+        ),
+    },
+    {
+        "id": "iii",
+        "emoji": "🌐",
+        "name": "TSS :: III",
+        "tag": "Opportunity Seeking",
+        "short": "Discover olympiads, programs & global opportunities.",
+        "detail": (
+            "🌐 *TSS :: III — Opportunity Seeking*\n\n"
+            "Helps students discover olympiad deadlines, programs and global opportunities.\n\n"
+            "📚 *কী পাবে?*\n"
+            "• আন্তর্জাতিক প্রোগ্রাম ও স্কলারশিপের আপডেট\n"
+            "• Olympiad registration deadlines\n"
+            "• Summer schools, exchange programs, fellowships\n\n"
+            "সুযোগ হাতছাড়া না করতে এখনই যুক্ত হয়ে যাও! 🌍"
+        ),
+    },
+    {
+        "id": "biobridge",
+        "emoji": "🧬",
+        "name": "TSS :: Bio-Bridge",
+        "tag": "Biology",
+        "short": "Bridge classroom biology and real science.",
+        "detail": (
+            "🧬 *TSS :: Bio-Bridge — Biology*\n\n"
+            "Bridge the gap between classroom biology and real science — olympiad prep, research thinking and life sciences.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• BBO, IBO প্রস্তুতি\n"
+            "• Cell biology, genetics, ecology, physiology\n"
+            "• Research-based problem solving\n\n"
+            "🔗 *শুরু করতে:* https://tss-bio-bridge.blogspot.com/\n\n"
+            "জীববিজ্ঞানের জগতে স্বাগতম! 🔬"
+        ),
+    },
+    {
+        "id": "codebase",
+        "emoji": "💻",
+        "name": "TSS :: Codebase",
+        "tag": "Programming",
+        "short": "From first lines of code to competitive programming.",
+        "detail": (
+            "💻 *TSS :: Codebase — Programming*\n\n"
+            "From first lines of code to competitive programming. Codebase builds the developers of tomorrow.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• Python, C++ basics থেকে advanced\n"
+            "• Competitive programming (Codeforces, ICPC prep)\n"
+            "• Data structures & algorithms\n\n"
+            "কোড লিখতে ভালোবাসো? তাহলে Codebase তোমার জন্যই! 🚀"
+        ),
+    },
+    {
+        "id": "metamorphosis",
+        "emoji": "✍️",
+        "name": "TSS :: Metamorphosis",
+        "tag": "English Language",
+        "short": "Transform your command of English.",
+        "detail": (
+            "✍️ *TSS :: Metamorphosis — English Language*\n\n"
+            "Transform your command of English — writing, speaking and comprehension for a globalized future.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• Essay writing, creative writing\n"
+            "• Public speaking & presentation\n"
+            "• Reading comprehension & vocabulary\n\n"
+            "ইংরেজিতে দক্ষ হতে চাইলে Metamorphosis তোমার রূপান্তর শুরু করবে! 🦋"
+        ),
+    },
+    {
+        "id": "lubdhok",
+        "emoji": "📖",
+        "name": "TSS :: Lubdhok",
+        "tag": "Bengali Language & Literature",
+        "short": "Nurture Bengali writing, literature & culture.",
+        "detail": (
+            "📖 *TSS :: Lubdhok — Bengali Language & Literature*\n\n"
+            "Celebrate the mother tongue. Lubdhok nurtures Bengali writing, literature and cultural expression.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• বাংলা রচনা, গল্প, কবিতা লেখা\n"
+            "• সাহিত্যের ইতিহাস ও বিশ্লেষণ\n"
+            "• বাংলা ভাষা অলিম্পিয়াড প্রস্তুতি\n\n"
+            "মাতৃভাষাকে ভালোবাসো — Lubdhok-এ স্বাগতম! 🖊️"
+        ),
+    },
+    {
+        "id": "nh5",
+        "emoji": "🧭",
+        "name": "TSS :: NH5",
+        "tag": "Guidance & Mentorship",
+        "short": "Your compass through academic & career decisions.",
+        "detail": (
+            "🧭 *TSS :: NH5 — Guidance & Mentorship*\n\n"
+            "Your compass through academic and career decisions. NH5 provides mentorship and life-skills guidance.\n\n"
+            "📚 *কী পাবে?*\n"
+            "• বিশ্ববিদ্যালয় ভর্তি গাইডেন্স\n"
+            "• Career counseling & path planning\n"
+            "• Life skills, time management, goal setting\n\n"
+            "সঠিক দিকনির্দেশনা পেতে NH5 সবসময় তোমার পাশে আছে! 🌟"
+        ),
+    },
+    {
+        "id": "optocoupler",
+        "emoji": "⚡",
+        "name": "TSS :: Optocoupler",
+        "tag": "Physics",
+        "short": "Explore the laws that govern the universe.",
+        "detail": (
+            "⚡ *TSS :: Optocoupler — Physics*\n\n"
+            "Explore the laws that govern the universe. Olympiad preparation and deep conceptual physics training.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• BPhO, IPhO প্রস্তুতি\n"
+            "• Mechanics, Electromagnetism, Optics, Modern Physics\n"
+            "• Conceptual problem solving & derivations\n\n"
+            "পদার্থবিজ্ঞানের রহস্য উন্মোচন করতে Optocoupler-এ আসো! 🔭"
+        ),
+    },
+    {
+        "id": "chemicompound",
+        "emoji": "⚗️",
+        "name": "TSS :: Chemicompound",
+        "tag": "Chemistry",
+        "short": "Reactions, elements & analytical thinking.",
+        "detail": (
+            "⚗️ *TSS :: Chemicompound — Chemistry*\n\n"
+            "Reactions, elements and analytical thinking. Chemicompound prepares students for chemistry olympiads and beyond.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• BChO, IChO প্রস্তুতি\n"
+            "• Organic, Inorganic & Physical Chemistry\n"
+            "• Lab techniques & analytical reasoning\n\n"
+            "রসায়নের রঙিন দুনিয়ায় তোমাকে স্বাগতম! 🧪"
+        ),
+    },
+    {
+        "id": "bizznexus",
+        "emoji": "📊",
+        "name": "TSS :: Bizz Nexus",
+        "tag": "Business",
+        "short": "Cultivate entrepreneurial thinking & business acumen.",
+        "detail": (
+            "📊 *TSS :: Bizz Nexus — Business*\n\n"
+            "The meeting point of ideas and enterprise. Bizz Nexus cultivates entrepreneurial thinking and business acumen.\n\n"
+            "📚 *কী শিখবে?*\n"
+            "• Business plan তৈরি ও pitch করা\n"
+            "• Economics, finance basics\n"
+            "• Entrepreneurship, startups & case studies\n\n"
+            "উদ্যোক্তা হওয়ার স্বপ্ন দেখো? Bizz Nexus তোমার শুরুর জায়গা! 💼"
+        ),
+    },
+]
 
-# =============== TEXTS ===============
+# =============== KEYBOARDS ===============
 
-def get_main_menu_text(name: str) -> str:
-    return (
-        f"আসসালামু আলাইকুম, <b>{name}</b>! 👋\n"
-        "স্বাগতম <b>ঠাকুরগাঁও সায়েন্স সোসাইটি (TSS)</b>-তে! 🌟\n\n"
-        "আমি তোমাকে TSS-এর সব কিছু জানাতে এখানে আছি।\n"
-        "নিচে থেকে তোমার পছন্দের বিষয়টা বেছে নাও 👇"
-    )
+def get_clubs_keyboard():
+    """Build 2-column inline keyboard for all 11 clubs."""
+    buttons = []
+    row = []
+    for i, club in enumerate(CLUBS):
+        btn = InlineKeyboardButton(
+            f"{club['emoji']} {club['name']}",
+            callback_data=f"club_{club['id']}"
+        )
+        row.append(btn)
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:  # odd one out gets its own row centered
+        buttons.append(row)
+    return InlineKeyboardMarkup(buttons)
 
-def get_main_menu_keyboard() -> InlineKeyboardMarkup:
-    keyboard = [
-        [InlineKeyboardButton("🏠 TSS কী? (পরিচয়)",           callback_data="about_tss")],
-        [InlineKeyboardButton("🧠 তার্কিক — যুক্তিবিদ্যা ক্লাব",  callback_data="tarkik")],
-        [InlineKeyboardButton("🔬 বায়োব্রিজ — জীববিজ্ঞান ক্লাব", callback_data="bio_bridge")],
-        [InlineKeyboardButton("📝 কীভাবে যোগ দেব?",              callback_data="how_to_join")],
-        [InlineKeyboardButton("🗓️ ইভেন্ট ও প্রতিযোগিতা",         callback_data="events")],
-        [InlineKeyboardButton("❓ সাধারণ জিজ্ঞাসা (FAQ)",         callback_data="faq")],
-    ]
-    return InlineKeyboardMarkup(keyboard)
+def get_back_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 সব ক্লাব দেখো", callback_data="back_to_clubs")]
+    ])
 
-def get_back_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔙 মূল মেনুতে ফিরে যাও", callback_data="main_menu")
-    ]])
+# =============== WELCOME TEXT ===============
 
-# ---- Section texts ----
-
-ABOUT_TSS_TEXT = (
-    "🏫 <b>ঠাকুরগাঁও সায়েন্স সোসাইটি (TSS) কী?</b>\n\n"
-    "TSS হলো ঠাকুরগাঁওয়ের ৬ষ্ঠ থেকে ১০ম শ্রেণীর বিজ্ঞান-প্রেমী শিক্ষার্থীদের জন্য একটি বিশেষ প্ল্যাটফর্ম।\n\n"
-    "এখানে তুমি:\n"
-    "✅ বিজ্ঞান ও যুক্তিবিদ্যা শিখতে পারবে\n"
-    "✅ জীববিজ্ঞানের গভীরে যেতে পারবে\n"
-    "✅ প্রতিযোগিতায় অংশ নিতে পারবে\n"
-    "✅ নতুন বন্ধু বানাতে পারবে\n\n"
-    f"🔗 <b>TSS Central Hub:</b> {LINKS['central_hub']}\n\n"
-    "সব তথ্য একসাথে পাবে Central Hub-এ গেলে!"
+INTRO_TEXT = (
+    "হ্যালো! স্বাগতম TSS পরিবারে। ❤️\n\n"
+    "আমরা *The Science Society (TSS)* — একটি শিক্ষার্থী-চালিত সংগঠন যেখানে বিতর্ক থেকে শুরু করে বিজ্ঞান অলিম্পিয়াড পর্যন্ত সবকিছু নিয়ে কাজ হয়।\n\n"
+    "নিচে আমাদের সব ক্লাব দেওয়া আছে। তোমার পছন্দের ক্লাবটিতে ক্লিক করো এবং বিস্তারিত জেনে নাও! 👇"
 )
-
-TARKIK_TEXT = (
-    "🧠 <b>তার্কিক — TSS যুক্তিবিদ্যা ও বিজ্ঞান ক্লাব</b>\n\n"
-    "তার্কিক হলো TSS-এর যুক্তি-তর্ক ও বিজ্ঞান-বিশ্লেষণ বিভাগ।\n"
-    "এখানে তুমি শিখবে কীভাবে সঠিকভাবে যুক্তি দিতে হয়, "
-    "সমস্যা সমাধান করতে হয়, এবং বৈজ্ঞানিক পদ্ধতিতে চিন্তা করতে হয়।\n\n"
-    "📌 <b>কীভাবে শুরু করবে?</b>\n"
-    "১. নিচের লিংকে যাও\n"
-    "২. Level 1 ও Level 2-এর Playlist দেখো\n"
-    "৩. সব ভিডিও দেখে শেষ করো\n"
-    "৪. ছোট একটা পরীক্ষা দাও — পাস করলেই সদস্যপদ! 🎉\n\n"
-    f"🔗 <b>তার্কিক লিংক:</b> {LINKS['tarkik']}\n\n"
-    "💡 <i>টিপস: Level 1 দিয়ে শুরু করো, তাড়াহুড়ো করো না!</i>"
-)
-
-BIO_BRIDGE_TEXT = (
-    "🔬 <b>বায়োব্রিজ — TSS জীববিজ্ঞান ক্লাব</b>\n\n"
-    "বায়োব্রিজ হলো TSS-এর জীববিজ্ঞান বিভাগ।\n"
-    "জীব, কোষ, বিবর্তন, বাস্তুতন্ত্র — সব কিছু মজার ভাবে শেখানো হয় এখানে।\n\n"
-    "📌 <b>বায়োব্রিজে কী পাবে?</b>\n"
-    "✅ সহজ ভাষায় জীববিজ্ঞান শেখার রিসোর্স\n"
-    "✅ অলিম্পিয়াড প্রস্তুতির উপকরণ\n"
-    "✅ বিশেষজ্ঞদের সাথে আলোচনার সুযোগ\n"
-    "✅ প্রজেক্ট ও রিসার্চে অংশগ্রহণ\n\n"
-    f"🔗 <b>বায়োব্রিজ লিংক:</b> {LINKS['bio_bridge']}\n\n"
-    "💡 <i>জীববিজ্ঞান ভালোবাসো? তাহলে বায়োব্রিজই তোমার জায়গা!</i>"
-)
-
-HOW_TO_JOIN_TEXT = (
-    "📝 <b>TSS-এ কীভাবে যোগ দেবে?</b>\n\n"
-    "যোগ দেওয়া একদম সহজ! নিচের ধাপগুলো অনুসরণ করো:\n\n"
-    "<b>🧠 তার্কিকের জন্য:</b>\n"
-    f"১. এই লিংকে যাও → {LINKS['tarkik']}\n"
-    "২. Level 1 → Level 2 Playlist দেখো\n"
-    "৩. নির্ধারিত পরীক্ষায় পাস করো\n"
-    "৪. সদস্যপদ নিশ্চিত হবে ✅\n\n"
-    "<b>🔬 বায়োব্রিজের জন্য:</b>\n"
-    f"১. এই লিংকে যাও → {LINKS['bio_bridge']}\n"
-    "২. সাইটে রেজিস্ট্রেশন ফর্ম পূরণ করো\n"
-    "৩. গ্রুপে অ্যাডমিনকে জানাও\n\n"
-    "<b>🏠 সব তথ্যের জন্য:</b>\n"
-    f"TSS Central Hub → {LINKS['central_hub']}\n\n"
-    "❓ কোনো সমস্যা হলে গ্রুপে বা এখানে জানাও!"
-)
-
-EVENTS_TEXT = (
-    "🗓️ <b>TSS ইভেন্ট ও প্রতিযোগিতা</b>\n\n"
-    "TSS নিয়মিত নানা রকম ইভেন্ট আয়োজন করে:\n\n"
-    "🏆 <b>বিজ্ঞান অলিম্পিয়াড</b> — জাতীয় পর্যায়ে অংশগ্রহণের সুযোগ\n"
-    "🧪 <b>সায়েন্স ফেয়ার</b> — নিজের প্রজেক্ট প্রদর্শন করো\n"
-    "💬 <b>বিতর্ক প্রতিযোগিতা</b> — যুক্তি দিয়ে জয়ী হও\n"
-    "📖 <b>কুইজ কম্পিটিশন</b> — জ্ঞান যাচাই করো\n"
-    "🔭 <b>ওয়ার্কশপ</b> — বিশেষজ্ঞদের কাছ থেকে শেখো\n\n"
-    "সর্বশেষ ইভেন্টের আপডেট পেতে:\n"
-    f"👉 Central Hub: {LINKS['central_hub']}\n\n"
-    "💡 <i>ইভেন্টে অংশ নেওয়া সদস্যরা সার্টিফিকেট পায়!</i>"
-)
-
-FAQ_TEXT = (
-    "❓ <b>সাধারণ জিজ্ঞাসা (FAQ)</b>\n\n"
-    "🔸 <b>TSS কি শুধু ঠাকুরগাঁওয়ের জন্য?</b>\n"
-    "→ মূলত ঠাকুরগাঁওয়ের শিক্ষার্থীদের জন্য, তবে অনলাইনে সবাই অংশ নিতে পারো।\n\n"
-    "🔸 <b>কোন শ্রেণীর শিক্ষার্থীরা যোগ দিতে পারবে?</b>\n"
-    "→ ৬ষ্ঠ থেকে ১০ম শ্রেণী পর্যন্ত সবাই।\n\n"
-    "🔸 <b>যোগ দেওয়া কি বিনামূল্যে?</b>\n"
-    "→ হ্যাঁ! সম্পূর্ণ বিনামূল্যে।\n\n"
-    "🔸 <b>তার্কিক ও বায়োব্রিজ দুটোতেই যোগ দিতে পারব?</b>\n"
-    "→ অবশ্যই! দুটোতেই যোগ দিতে পারবে।\n\n"
-    "🔸 <b>পরীক্ষায় পাস না করলে কী হবে?</b>\n"
-    "→ আবার দিতে পারবে! চেষ্টা চালিয়ে যাও 💪\n\n"
-    "🔸 <b>আরও প্রশ্ন থাকলে?</b>\n"
-    "→ সরাসরি গ্রুপে লেখো বা এখানে মেসেজ দাও!"
-)
-
-SECTION_TEXTS = {
-    "about_tss":   ABOUT_TSS_TEXT,
-    "tarkik":      TARKIK_TEXT,
-    "bio_bridge":  BIO_BRIDGE_TEXT,
-    "how_to_join": HOW_TO_JOIN_TEXT,
-    "events":      EVENTS_TEXT,
-    "faq":         FAQ_TEXT,
-}
-
-# keyword → section mapping for smart private chat
-KEYWORD_MAP = {
-    "তার্কিক": "tarkik",
-    "tarkik":  "tarkik",
-    "যুক্তি":  "tarkik",
-    "debate":  "tarkik",
-    "level":   "tarkik",
-    "বায়োব্রিজ": "bio_bridge",
-    "bio":        "bio_bridge",
-    "জীব":        "bio_bridge",
-    "biology":    "bio_bridge",
-    "বিজ্ঞান":    "bio_bridge",
-    "যোগ":          "how_to_join",
-    "join":         "how_to_join",
-    "ভর্তি":        "how_to_join",
-    "রেজিস্ট্রেশন": "how_to_join",
-    "registration": "how_to_join",
-    "member":       "how_to_join",
-    "সদস্য":        "how_to_join",
-    "ইভেন্ট":    "events",
-    "event":     "events",
-    "প্রতিযোগিতা": "events",
-    "অলিম্পিয়াড":  "events",
-    "olympiad":  "events",
-    "quiz":      "events",
-    "কুইজ":      "events",
-    "tss":         "about_tss",
-    "সোসাইটি":    "about_tss",
-    "পরিচয়":     "about_tss",
-    "hub":         "about_tss",
-    "হাব":         "about_tss",
-    "faq":         "faq",
-    "প্রশ্ন":      "faq",
-    "সাহায্য":    "faq",
-    "help":        "faq",
-}
 
 # =============== HANDLERS ===============
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    name = user.first_name or "বন্ধু"
     await update.message.reply_text(
-        get_main_menu_text(name),
-        parse_mode="HTML",
-        reply_markup=get_main_menu_keyboard(),
+        INTRO_TEXT,
+        parse_mode="Markdown",
+        reply_markup=get_clubs_keyboard()
     )
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📌 <b>আমি তোমাকে যা যা বিষয়ে সাহায্য করতে পারি:</b>\n\n"
-        "• TSS সম্পর্কে জানতে\n"
-        "• তার্কিক ক্লাব সম্পর্কে জানতে\n"
-        "• বায়োব্রিজ সম্পর্কে জানতে\n"
-        "• কীভাবে যোগ দেবে\n"
-        "• ইভেন্ট ও প্রতিযোগিতার তথ্য\n\n"
-        "শুধু /start লিখলেই মূল মেনু আসবে! 😊",
-        parse_mode="HTML",
-    )
-
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data == "main_menu":
-        await query.edit_message_text(
-            get_main_menu_text(query.from_user.first_name or "বন্ধু"),
-            parse_mode="HTML",
-            reply_markup=get_main_menu_keyboard(),
-        )
-    elif data in SECTION_TEXTS:
-        await query.edit_message_text(
-            SECTION_TEXTS[data],
-            parse_mode="HTML",
-            reply_markup=get_back_keyboard(),
-        )
 
 async def handle_private_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.chat.type != "private":
+    if update.message.chat.type == "private":
+        await update.message.reply_text(
+            INTRO_TEXT,
+            parse_mode="Markdown",
+            reply_markup=get_clubs_keyboard()
+        )
+
+async def handle_club_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+
+    if data == "back_to_clubs":
+        await query.edit_message_text(
+            INTRO_TEXT,
+            parse_mode="Markdown",
+            reply_markup=get_clubs_keyboard()
+        )
         return
 
-    user = update.effective_user
-    name = user.first_name or "বন্ধু"
-    text = (update.message.text or "").lower().strip()
+    if data.startswith("club_"):
+        club_id = data[len("club_"):]
+        club = next((c for c in CLUBS if c["id"] == club_id), None)
+        if club:
+            await query.edit_message_text(
+                club["detail"],
+                parse_mode="Markdown",
+                reply_markup=get_back_keyboard()
+            )
 
-    detected_section = None
-    for keyword, section in KEYWORD_MAP.items():
-        if keyword.lower() in text:
-            detected_section = section
-            break
+# =============== GROUP WELCOME (with auto-delete after 6 hours) ===============
 
-    if detected_section:
-        await update.message.reply_text(
-            SECTION_TEXTS[detected_section],
-            parse_mode="HTML",
-            reply_markup=get_back_keyboard(),
-        )
-    else:
-        await update.message.reply_text(
-            get_main_menu_text(name),
-            parse_mode="HTML",
-            reply_markup=get_main_menu_keyboard(),
-        )
-
-async def _delete_message_later(bot, chat_id: int, message_id: int, delay_seconds: int):
+async def delete_message_later(bot, chat_id, message_id, delay_seconds):
     await asyncio.sleep(delay_seconds)
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
-        logger.info(f"Auto-deleted welcome message {message_id} in chat {chat_id}")
     except Exception as e:
-        logger.warning(f"Could not delete message {message_id}: {e}")
+        print(f"[Auto-delete] Could not delete message {message_id}: {e}")
 
 async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.new_chat_members:
@@ -286,68 +294,47 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = user.first_name or "সদস্য"
         bot_username = context.bot.username
 
-        keyboard = [[
-            InlineKeyboardButton(
-                "বিস্তারিত জানতে এখানে ক্লিক করো ✨",
-                url=f"https://t.me/{bot_username}",
-            )
-        ]]
+        keyboard = [[InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{bot_username}")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         group_msg = (
-            f"👋 আমাদের পরিবারে স্বাগতম, <b>{name}</b>! 🎉\n\n"
-            "গ্রুপের পিন করা মেসেজগুলো একটু চেক করো।\n"
-            "TSS সম্পর্কে সব কিছু জানতে নিচের বাটনে ক্লিক করে আমাকে মেসেজ দাও 👇\n\n"
-            "<i>⏳ এই মেসেজটি ৬ ঘণ্টা পর স্বয়ংক্রিয়ভাবে মুছে যাবে।</i>"
+            f"👋 আমাদের পরিবারে সদস্য হিসেবে স্বাগতম তোমাকে, <b>{name}</b>! 🎉\n\n"
+            "গ্রুপের উপরে পিন করা মেসেজগুলো একটু চেক করে দেখো।\n\n"
+            "সব কিছু একসাথে জানতে নিচের বাটনে ক্লিক করে আমাকে মেসেজ দাও: 👇"
         )
 
         try:
             sent = await update.message.reply_text(
-                group_msg, parse_mode="HTML", reply_markup=reply_markup
+                group_msg,
+                parse_mode="HTML",
+                reply_markup=reply_markup
             )
+            # Schedule auto-delete after 6 hours (21600 seconds)
             asyncio.create_task(
-                _delete_message_later(
-                    context.bot,
-                    chat_id=sent.chat_id,
-                    message_id=sent.message_id,
-                    delay_seconds=6 * 3600,
-                )
+                delete_message_later(context.bot, sent.chat_id, sent.message_id, 21600)
             )
         except Exception as e:
-            logger.error(f"Error sending welcome message: {e}")
+            print(f"Error sending welcome: {e}")
 
 # =============== MAIN ===============
 
-def main():
+if __name__ == "__main__":
     TOKEN = os.environ.get("BOT_TOKEN")
     if not TOKEN:
-        logger.error("❌ BOT_TOKEN environment variable not set!")
-        raise SystemExit(1)
+        print("❌ BOT_TOKEN not set!")
+        exit(1)
 
-    # Start Flask FIRST so Render's health check passes immediately
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    logger.info("✅ Flask health check server started")
+    threading.Thread(target=run_flask, daemon=True).start()
 
-    # Build and start the Telegram bot
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_group))
-    app.add_handler(CallbackQueryHandler(handle_callback))
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE,
-            handle_private_message,
-        )
-    )
+    app.add_handler(MessageHandler(
+        filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE,
+        handle_private_message
+    ))
+    app.add_handler(CallbackQueryHandler(handle_club_callback))
 
-    logger.info("🤖 TSS Bot is active and polling!")
-    app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,   # ignore old messages on restart
-    )
-
-if __name__ == "__main__":
-    main()
+    print("🤖 Bot is active!")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
