@@ -6,7 +6,6 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 
 # =============== FLASK HEALTH CHECK ===============
-# This keeps the bot alive on Render
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -26,7 +25,7 @@ async def delete_message_job(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.delete_message(chat_id=job.chat_id, message_id=job.data)
         print(f"🗑️ Auto-deleted message {job.data} in chat {job.chat_id}")
     except Exception as e:
-        print(f"⚠️ Could not delete message (it might have been deleted manually): {e}")
+        print(f"⚠️ Could not delete message: {e}")
 
 # =============== TEXT CONTENT ===============
 
@@ -43,15 +42,14 @@ def get_welcome_info(name):
 # =============== BOT HANDLERS ===============
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles /start and any private messages"""
     user = update.effective_user
     name = user.first_name or "সদস্য"
-    print(f"DEBUG: Private message/start from {name}")
     await update.message.reply_text(get_welcome_info(name), parse_mode="Markdown")
 
 async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles new members joining the group"""
-    if not update.message or not update.message.new_chat_members:
+    # Ensure there are new members in the message
+    if not update.message.new_chat_members:
         return
 
     for user in update.message.new_chat_members:
@@ -59,15 +57,8 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
             continue
         
         name = user.first_name or "সদস্য"
-        print(f"DEBUG: {name} joined the group.")
 
-        # 1. Try to delete the 'User joined' system notification
-        try:
-            await update.message.delete()
-        except Exception as e:
-            print(f"Could not delete join notification: {e}")
-
-        # 2. Send the Welcome Message with Button
+        # 1. Prepare Welcome Message with Button
         btn = InlineKeyboardMarkup([[
             InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{context.bot.username}")
         ]])
@@ -79,15 +70,21 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
         try:
+            # 2. Send the Welcome Message
             sent_msg = await update.message.reply_text(
                 group_text, 
                 parse_mode="HTML", 
                 reply_markup=btn
             )
             
-            # 3. Schedule Auto-Delete (6 hours = 21600 seconds)
-            # Change to 10 for testing
-            delete_delay = 6 * 60 * 60 
+            # 3. Try to delete the 'User joined' system notification
+            try:
+                await update.message.delete()
+            except Exception:
+                pass # Bot might lack admin permissions to delete system messages
+
+            # 4. Schedule Auto-Delete (Set to 30 seconds for testing)
+            delete_delay = 30 
             context.job_queue.run_once(
                 delete_message_job, 
                 when=delete_delay, 
@@ -107,21 +104,15 @@ if __name__ == "__main__":
         print("❌ CRITICAL: BOT_TOKEN not found!")
         exit(1)
 
-    # 1. Start Flask in background thread
     print("🌐 Starting Flask Server...")
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # 2. Build the Application with JobQueue enabled
     print("🤖 Initializing Bot...")
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # 3. Add Handlers
     app.add_handler(CommandHandler("start", start_handler))
-    # Handles text in private chat
     app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, start_handler))
-    # Handles new members
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_group))
 
-    # 4. Start Polling
     print("🚀 BOT IS LIVE. Waiting for events...")
     app.run_polling(drop_pending_updates=True)
