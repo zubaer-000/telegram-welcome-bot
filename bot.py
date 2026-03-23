@@ -29,7 +29,7 @@ def get_private_welcome_text(name):
 
 # =============== AUTO-DELETE HELPER ===============
 # ⚠️ DIAGNOSTIC MODE: set to 30 seconds for testing
-DELETE_AFTER_SECONDS = 30  # Change to 6 * 60 * 60 for production
+DELETE_AFTER_SECONDS = 6 * 60 * 60  # Change to 6 * 60 * 60 for production
 
 async def delete_message_later(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
