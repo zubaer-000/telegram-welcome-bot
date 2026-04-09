@@ -4,6 +4,7 @@ import threading
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
+import re
 
 # =============== FLASK HEALTH CHECK ===============
 flask_app = Flask(__name__)
@@ -17,7 +18,13 @@ def run_flask():
     flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 # =============== CONSTANTS & TEXTS ===============
+import html
+def escape_markdown(text):
+    return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', text)
+
 def get_private_welcome_text(name):
+    name = escape_markdown(name)  # ✅ minimal fix
+
     return (
         f"🌟 *TSS MEGA GUIDE* 🌟\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -142,13 +149,17 @@ async def handle_private_message(update: Update, context: ContextTypes.DEFAULT_T
     if update.message.chat.type == "private":
         user = update.effective_user
         name = user.first_name or "সদস্য"
+
+        user_text = escape_markdown(update.message.text) if update.message.text else ""
+
         print(f"[PRIVATE MSG] from user_id={user.id} text='{update.message.text}'")
+
         sent = await update.message.reply_text(
-            f"তুমি লিখেছো: '{update.message.text}'\n\n" + get_private_welcome_text(name),
+            f"তুমি লিখেছো: '{user_text}'\n\n" + get_private_welcome_text(name),
             parse_mode="Markdown"
         )
-        print(f"[PRIVATE MSG] sent message_id={sent.message_id} in chat_id={sent.chat_id}")
-        schedule_delete(context, sent.chat_id, sent.message_id)
+
+        
 
 async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.new_chat_members:
