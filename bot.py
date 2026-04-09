@@ -196,7 +196,7 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot_username = context.bot.username
         print(f"[GROUP JOIN] user_id={user.id} name={name} in chat_id={update.message.chat_id}")
 
-        keyboard = [[InlineKeyboardButton("বিস্তারিত জানতে এখানে ক্লিক করো ✨", url=f"https://t.me/{bot_username}")]]
+        keyboard = [[InlineKeyboardButton("এখানে ক্লিক করো ✨", url=f"https://t.me/{bot_username}")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         group_msg = (
