@@ -166,10 +166,30 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         group_msg = (
-            f"👋 আমাদের পরিবারে সদস্য হিসেবে স্বাগতম তোমাকে, <b>{name}</b>! 🎉\n\n"
-            "গ্রুপের উপরে পিন করা মেসেজগুলো একটু চেক করে দেখো।\n\n"
-            "সব কিছু একসাথে জানতে নিচের বাটনে ক্লিক করে আমাকে মেসেজ দাও: 👇"
-        )
+    f"🌟 <b>Welcome to TSS Family</b> 🌟\n"
+    f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+    f"👋 হ্যালো <b>{name}</b>!\n"
+    f"আমাদের পরিবারে তোমাকে স্বাগতম 🎉\n\n"
+
+    f"📌 <b>শুরু করার আগে:</b>\n"
+    f"গ্রুপের উপরে পিন করা মেসেজগুলো অবশ্যই দেখে নিও 👀\n"
+    f"ওখানেই গুরুত্বপূর্ণ সব তথ্য আছে ✅\n\n"
+
+    f"🌐 <b>আমাদের মেইন ওয়েবসাইট:</b>\n"
+    f"https://thakurgaonsciencesociety.blogspot.com/\n"
+    f"সময় পেলে একবার ঘুরে আসতে পারো 😊\n\n"
+
+    f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+    f"🤖 <b>সবকিছু একসাথে জানতে চাও?</b>\n"
+    f"নিচের বাটনে ক্লিক করে আমাকে মেসেজ দাও 👇\n\n"
+
+    f"✉️ শুধু <b>Hi</b> লিখলেই হবে!\n"
+    f"⚠️ <i>Hi না লিখলে কিন্তু কাজ করবে না!</i>\n\n"
+
+    f"✨ <i>Stay active • Learn • Grow with TSS</i> ✨"
+)
 
         try:
             sent = await update.message.reply_text(group_msg, parse_mode="HTML", reply_markup=reply_markup)
