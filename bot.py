@@ -23,89 +23,112 @@ def escape_markdown(text):
     return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', text)
 
 def get_private_welcome_text(name):
-    name = escape_markdown(name)  # ✅ minimal fix
-
-    return (
-        f"🌟 *TSS MEGA GUIDE* 🌟\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"👋 হ্যালো {name}!\n"
-        f"স্বাগতম ঠাকুরগাঁও সায়েন্স সোসাইটির পরিবারে ❤️\n\n"
-
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🌿 *TSS::Bio-Bridge* 🌿\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔬 জীববিজ্ঞান নিয়ে কাজ করার সেকশন\n\n"
-        f"📌 Biolympo অলিম্পিয়াডে অংশগ্রহণ করতে পারবে\n"
-        f"📚 সিলেবাসভিত্তিক প্রস্তুতি কন্টেন্ট পাওয়া যাবে\n\n"
-        f"🌐 Website:\n"
-        f"https://tss-bio-bridge.blogspot.com\n\n"
-        f"📢 Telegram Channels:\n"
-        f"🔹 Level-1 (৬ষ্ঠ–৮ম):\n"
-        f"https://t.me/+ITrndBAZKCI2YWM1\n\n"
-        f"🔹 Level-2 (৯ম–১০ম):\n"
-        f"https://t.me/+odcmO_NmEU1kMzdl\n\n"
-
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡️ *TSS::GigaHertz* ⚡️\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🏫 School-level Volunteer Group\n\n"
-        f"📌 কাজ:\n"
-        f"▪️ TSS event প্রচারণা\n"
-        f"▪️ স্কুলে কার্যক্রম পরিচালনা\n"
-        f"▪️ ভলান্টিয়ার হিসেবে কাজ\n\n"
-        f"📋 Member List:\n"
-        f"https://tss-member-list.blogspot.com\n\n"
-        f"📝 Join Form:\n"
-        f"https://tss-membership.blogspot.com\n\n"
-
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f" *TSS::III (Triple I)* \n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔍 অলিম্পিয়াড তথ্য ও প্রস্তুতির হাব\n\n"
-        f"🌐 Main Website:\n"
-        f"https://tss-triple-eye.blogspot.com/\n\n"
-        f"📅 Deadlines:\n"
-        f"https://tss-reg-deadline.blogspot.com\n\n"
-        f"📖 Olympiad Info:\n"
-        f"https://tss-olympiad-list.blogspot.com\n"
-        f"https://tss-olympiad-details.blogspot.com\n\n"
-        f"💡 Resources:\n"
-        f"https://tss-olympiad-resource.blogspot.com\n\n"
-
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💻 *TSS::CodeBase* 💻\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🚀 Competitive Programming Community\n\n"
-        f"📌 শিখবে:\n"
-        f"▪️ C++ Programming\n"
-        f"▪️ Problem Solving\n"
-        f"▪️ Contest & Leaderboard\n\n"
-        f"📢 Telegram Channel:\n"
-        f"https://t.me/+vDuAwXCegvA\n\n"
-
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🎙 *TSS::Tarkik* 🎙\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🗣️ Debate Section\n\n"
-        f"📌 শিখবে:\n"
-        f"▪️ সনাতনী বিতর্ক\n"
-        f"▪️ সংসদীয় বিতর্ক\n\n"
-        f"🌐 Website:\n"
-        f"https://tss-tarkik.blogspot.com/?m=1#home\n\n"
-        f"📢 Telegram (Level 1 & 2):\n"
-        f"https://t.me/addlist/dcz-1OtBDdl\n\n"
-        f"📌 Level System:\n"
-        f"🔹 Level 1 → সনাতনী বিতর্ক + পরীক্ষা\n"
-        f"🔹 Level 2 → সংসদীয় বিতর্ক + পরীক্ষা\n"
-        f"🔹 Level 3 → Advanced Entry\n\n"
-
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💬 *শেষ কথা*\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔥 তুমি যে সেকশনেই আগ্রহী হও — আজই শুরু করো!\n"
-        f"📢 কোনো সাহায্য লাগলে অবশ্যই জানাবে\n\n"
+    # Escape the name to prevent user-input from breaking the code
+    name = escape_markdown(name)
+    
+    # Using a list and joining is often cleaner for long strings
+    lines = [
+        f"🌟 *TSS MEGA GUIDE* 🌟",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"",
+        f"👋 হ্যালো {name}\!",
+        f"স্বাগতম ঠাকুরগাঁও সায়েন্স সোসাইটির পরিবারে ❤️",
+        f"",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🌿 *TSS::Bio\-Bridge* 🌿",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🔬 জীববিজ্ঞান নিয়ে কাজ করার সেকশন",
+        f"",
+        f"📌 Biolympo অলিম্পিয়াডে অংশগ্রহণ করতে পারবে",
+        f"📚 সিলেবাসভিত্তিক প্রস্তুতি কন্টেন্ট পাওয়া যাবে",
+        f"",
+        f"🌐 Website:",
+        f"https://tss\-bio\-bridge\.blogspot\.com",
+        f"",
+        f"📢 Telegram Channels:",
+        f"🔹 Level\-1 \(৬ষ্ঠ–৮ম\):",
+        f"https://t\.me/\+ITrndBAZKCI2YWM1",
+        f"",
+        f"🔹 Level\-2 \(৯ম–১০ম\):",
+        f"https://t\.me/\+odcmO_NmEU1kMzdl",
+        f"",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"⚡️ *TSS::GigaHertz* ⚡️",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🏫 School\-level Volunteer Group",
+        f"",
+        f"📌 কাজ:",
+        f"▪️ TSS event প্রচারণা",
+        f"▪️ স্কুলে কার্যক্রম পরিচালনা",
+        f"▪️ ভলান্টিয়ার হিসেবে কাজ",
+        f"",
+        f"📋 Member List:",
+        f"https://tss\-member\-list\.blogspot\.com",
+        f"",
+        f"📝 Join Form:",
+        f"https://tss\-membership\.blogspot\.com",
+        f"",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f" *TSS::III \(Triple I\)* ",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🔍 অলিম্পিয়াড তথ্য ও প্রস্তুতির হাব",
+        f"",
+        f"🌐 Main Website:",
+        f"https://tss\-triple\-eye\.blogspot\.com/",
+        f"",
+        f"📅 Deadlines:",
+        f"https://tss\-reg\-deadline\.blogspot\.com",
+        f"",
+        f"📖 Olympiad Info:",
+        f"https://tss\-olympiad\-list\.blogspot\.com",
+        f"https://tss\-olympiad\-details\.blogspot\.com",
+        f"",
+        f"💡 Resources:",
+        f"https://tss\-olympiad\-resource\.blogspot\.com",
+        f"",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"💻 *TSS::CodeBase* 💻",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🚀 Competitive Programming Community",
+        f"",
+        f"📌 শিখবে:",
+        f"▪️ C\+\+ Programming",
+        f"▪️ Problem Solving",
+        f"▪️ Contest \& Leaderboard",
+        f"",
+        f"📢 Telegram Channel:",
+        f"https://t\.me/\+vDuAwXCegvA",
+        f"",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🎙 *TSS::Tarkik* 🎙",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🗣️ Debate Section",
+        f"",
+        f"📌 শিখবে:",
+        f"▪️ সনাতনী বিতর্ক",
+        f"▪️ সংসদীয় বিতর্ক",
+        f"",
+        f"🌐 Website:",
+        f"https://tss\-tarkik\.blogspot\.com/?m=1\#home",
+        f"",
+        f"📢 Telegram \(Level 1 \& 2\):",
+        f"https://t\.me/addlist/dcz\-1OtBDdl",
+        f"",
+        f"📌 Level System:",
+        f"🔹 Level 1 → সনাতনী বিতর্ক \+ পরীক্ষা",
+        f"🔹 Level 2 → সংসদীয় বিতর্ক \+ পরীক্ষা",
+        f"🔹 Level 3 → Advanced Entry",
+        f"",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"💬 *শেষ কথা*",
+        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"🔥 তুমি যে সেকশনেই আগ্রহী হও — আজই শুরু করো\!",
+        f"📢 কোনো সাহায্য লাগলে অবশ্যই জানাবে",
+        f"",
         f"✨ Learn • Grow • Shine with TSS ✨"
-    )
+    ]
+    
+    return "\n".join(lines)
 
 # =============== AUTO-DELETE HELPER ===============
 # ⚠️ DIAGNOSTIC MODE: set to 30 seconds for testing
