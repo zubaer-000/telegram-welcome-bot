@@ -179,20 +179,14 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         group_msg = (
     f"🌟 <b>Welcome to TSS Family</b> 🌟\n"
     f"━━━━━━━━━━━━━━━━━━\n\n"
-
     f"👋 হ্যালো <b>{name}</b>!\n"
     f"আমাদের পরিবারে তোমাকে স্বাগতম 🎉\n\n"
-
     f"📌 <b>শুরু করার আগে:</b>\n"
     f"1. গ্রুপের উপরে পিন করা মেসেজগুলো অবশ্যই দেখে নিও 👀\n\n"
-   
-
     f"━━━━━━━━━━━━━━━━━━\n\n"
-
     f"🤖 <b>সবকিছু একসাথে জানতে চাও?</b>\n"
     f"নিচের বাটনে ক্লিক করে আমাকে "Hi" দাও 👇\n\n"
     f"⚠️ <i>Hi না লিখলে কিন্তু কাজ করবে না!</i>\n\n"
-
 )
 
         try:
