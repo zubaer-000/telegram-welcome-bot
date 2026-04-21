@@ -62,6 +62,8 @@ def get_private_welcome_text(name):
         f"🔹 Level-2 (৯ম–১০ম):",
         f"https://t.me/+odcmO_NmEU1kMzdl",
         f"",
+        f"🌐 Facebook link:",
+        f"https://www.facebook.com/profile.php?id=61570715933718",
         f"━━━━━━━━━━━━━━━━━━━━━━━",
         f"⚡️ <b>TSS::GigaHertz</b> ⚡️",
         f"━━━━━━━━━━━━━━━━━━━━━━━",
