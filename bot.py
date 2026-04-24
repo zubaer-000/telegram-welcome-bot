@@ -243,7 +243,7 @@ async def welcome_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"━━━━━━━━━━━━━━━━━━\n\n"
             f"🤖 <b>সবকিছু একসাথে জানতে চাও?</b>\n"
             f"নিচের বাটনে ক্লিক করে আমাকে 'Hi' দাও 👇\n\n"
-            f"⚠️ <i>Hi না লিখলে কিন্তু কাজ করবে না!</i>\n"
+            
         )
 
         try:
